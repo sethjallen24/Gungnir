@@ -1,9 +1,9 @@
 # Gungnir
 
 Schedule and publish posts to your clients' **Instagram**, **TikTok**, **YouTube** and
-**Facebook** accounts from one place. It's a web app your team signs in to. It runs on a small
-server so posts go out on time even when everyone's laptop is closed. It connects to each
-platform directly through the platform's official publishing API.
+**Facebook** accounts from one place. It runs on a small server, so posts go out on time even
+when everyone's laptop is closed. Your team uses it through the **Gungnir Mac app** or in any
+browser. It connects to each platform directly through the platform's official publishing API.
 
 It's built like [Orbit CRM](https://github.com/sethjallen24/Orbit-Crm) and
 [Jormungandr](https://github.com/sethjallen24/Jormungandr): TypeScript and React, with a Node
@@ -139,24 +139,61 @@ build && npm start`) so everything is served from port 3000.
 
 ## Put it on a server
 
-Any host that runs Node and keeps a persistent disk works. Render, Fly.io and Railway all do,
-and the choice can wait until you're ready to go live.
+Gungnir runs as a plain Node app (no Docker). [Render](https://render.com) is set up for it in
+`render.yaml`:
+
+1. In Render, choose **New → Blueprint** and pick this repository.
+2. Render asks for the values marked `sync: false`. Fill in the platform keys you have. Leave
+   `PUBLIC_URL` blank unless you'll use your own domain. `SECRET_KEY` is generated for you.
+3. Create it. Render builds it (`npm ci && npm run build`), starts it (`npm start`) and gives it
+   an address like `https://gungnir-xxxx.onrender.com`.
+4. **Open that address straight away and create your admin account.** The first person to open
+   a new installation becomes its admin.
+5. In each platform app (above), set the redirect URI to that address plus
+   `/oauth/meta/callback`, `/oauth/google/callback` or `/oauth/tiktok/callback`.
+
+The Blueprint uses the **Starter** plan with a 10 GB disk at `/var/data`, which holds the
+database and uploaded files and survives deploys. The free plan won't work: free services sleep
+when idle, so scheduled posts would be missed, and they can't have a disk. Render keeps daily
+snapshots of the disk. Each push to `main` deploys again.
+
+To use your own domain, add it in Render, set `PUBLIC_URL` to it (for example
+`https://post.example.com`) and update the platforms' redirect URIs.
+
+Other hosts work too if they run Node 22 and keep a persistent disk. Run `npm ci && npm run
+build`, then `npm start`, and set:
+- `PUBLIC_URL`: the site's https address.
+- `DATA_DIR`: a folder on the persistent disk.
+- `SECRET_KEY`: from `openssl rand -hex 32`. It encrypts the stored platform sign-ins; if it's
+  lost, every account has to be connected again.
+- `TRUST_PROXY=true` when it runs behind the host's proxy. This is automatic on Render, Fly.io and Railway.
+
+Run a single instance, so only one scheduler publishes.
+
+## The Mac app
+
+To install the Mac app, paste this into Terminal:
 
 ```sh
-npm ci && npm run build
-npm start                 # serves the web app and the API, and runs the scheduler
+cd ~ && { [ -d gungnir ] && git -C gungnir pull || git clone https://github.com/sethjallen24/gungnir; } && bash ~/gungnir/desktop/install-prebuilt-mac.sh
 ```
 
-Set the `.env` values as the host's environment variables:
-- `PUBLIC_URL` is the site's https address.
-- `DATA_DIR` must be on the persistent disk. It holds the database and uploaded files.
-- `SECRET_KEY` encrypts the stored platform sign-ins. Generate it with `openssl rand -hex 32`.
-  If it's lost, every account has to be connected again.
+Like Jormungandr's installer, it needs no Node.js. It downloads the official Electron runtime,
+checks its SHA-256 checksum, and adds the app files from `desktop/prebuilt/`. It then signs the
+app ad hoc and installs `/Applications/Gungnir.app`. Run it again to update.
 
-Run a single instance, so only one scheduler publishes. Back up `DATA_DIR` regularly.
+On first launch it asks for your server's address (for example `gungnir-xxxx.onrender.com`). It
+remembers the address and your sign-in. To switch servers, choose **File → Change Server…**.
 
-The first person to open a new installation becomes its admin, so open it and create your
-account as soon as it's deployed.
+- **Connecting accounts** works inside the app. The Facebook, Google and TikTok sign-in pages
+  open in its window. Other links open in your browser.
+- **Failed posts** are counted on the Dock icon and in the window title. Each new failure also
+  sends a notification; click it to open the post.
+- **The server is down or restarting:** the app says so and offers **Try again**.
+- **Open in Browser** (File menu, or ⇧⌘O) opens the current page in your browser.
+
+The app lives in `desktop/`. After changing it, run `desktop/scripts/update-prebuilt.sh` and
+commit `desktop/prebuilt/`.
 
 ## Tests
 
@@ -164,6 +201,14 @@ account as soon as it's deployed.
 npm test                                              # unit tests: rules, chunking, encryption
 npm run build && CHROMIUM_PATH=/path/to/chromium npm run test:e2e
 ```
+
+For the Mac app: `cd desktop && npm ci && npm test`. Build the server first; on Linux, run the
+test under `xvfb-run`. It starts the built server and checks that:
+- the connect page refuses wrong addresses
+- links to other sites go to the browser
+- failed posts are counted
+- the server address and sign-in are remembered
+- the app recovers when the server is down
 
 The end-to-end test runs the built server against stand-ins for the four platforms' APIs
 (`tests/mock-platforms.mjs`) and drives the web app in Chromium. It covers setup, connecting
@@ -183,6 +228,8 @@ against real accounts too before relying on it.
 | Platform sign-ins and publishing | `src/server/platforms/` (`meta.ts`, `google.ts`, `tiktok.ts`) |
 | Platform rules, shared by the composer and the server | `src/shared/rules.ts` |
 | Web app | `src/web/` |
+| Mac app (window, connect page, failed-post badge) | `desktop/` |
+| Render setup | `render.yaml` |
 
 ## Not built yet
 

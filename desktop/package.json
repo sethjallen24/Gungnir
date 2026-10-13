@@ -1,0 +1,41 @@
+{
+  "name": "gungnir-desktop",
+  "productName": "Gungnir",
+  "version": "0.1.0",
+  "description": "Mac app for a hosted Gungnir",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node tests/electron.mjs",
+    "dist:mac": "electron-builder --mac --dir"
+  },
+  "build": {
+    "appId": "com.gungnir.app",
+    "productName": "Gungnir",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "connect.html",
+      "connect.js",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "icon": "build/icon.png",
+      "target": [
+        "dir"
+      ],
+      "identity": null
+    }
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "^26.15.3",
+    "playwright-core": "^1.64.0"
+  }
+}
