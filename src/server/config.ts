@@ -28,7 +28,8 @@ function secretKey(): Buffer {
   return Buffer.from(fs.readFileSync(file, 'utf8').trim(), 'hex');
 }
 
-const publicUrl = env('PUBLIC_URL', `http://localhost:${env('PORT', '3000')}`).replace(/\/+$/, '');
+// On Render, its own https address is used unless PUBLIC_URL says otherwise.
+const publicUrl = env('PUBLIC_URL', env('RENDER_EXTERNAL_URL', `http://localhost:${env('PORT', '3000')}`)).replace(/\/+$/, '');
 
 export const config = {
   port: Number(env('PORT', '3000')),
@@ -36,6 +37,8 @@ export const config = {
   /** Where the app is reached from the internet: OAuth redirects and media links for the platforms. */
   publicUrl,
   secureCookies: publicUrl.startsWith('https://'),
+  /** Behind a hosting proxy (Render, Fly, Railway), read the visitor's address from X-Forwarded-For. */
+  trustProxy: env('TRUST_PROXY', process.env.RENDER || process.env.FLY_APP_NAME || process.env.RAILWAY_ENVIRONMENT ? 'true' : 'false') === 'true',
   dataDir,
   mediaDir: path.join(dataDir, 'media'),
   dbFile: path.join(dataDir, 'gungnir.sqlite'),

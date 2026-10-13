@@ -66,7 +66,7 @@ export interface AppOptions {
 }
 
 export async function buildApp({ db, kick = () => undefined, webDir }: AppOptions) {
-  const app = Fastify({ logger: process.env.NODE_ENV === 'test' ? false : { level: 'info' }, bodyLimit: 1024 * 1024 });
+  const app = Fastify({ logger: process.env.NODE_ENV === 'test' ? false : { level: 'info' }, bodyLimit: 1024 * 1024, trustProxy: config.trustProxy });
   await app.register(cookie);
   await app.register(multipart, { limits: { fileSize: config.maxUploadBytes, files: 1 } });
   await app.register(fastifyStatic, { root: config.mediaDir, serve: false });

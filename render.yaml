@@ -1,0 +1,40 @@
+# Render Blueprint: in Render choose New → Blueprint, pick this repository, and fill in the
+# values it asks for. See "Put it on a server" in the README.
+services:
+  - type: web
+    name: gungnir
+    runtime: node
+    # A paid plan: free services sleep (scheduled posts would be missed) and can't have a disk.
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/status
+    autoDeploy: true
+    # The database and uploaded files live here and survive deploys.
+    disk:
+      name: gungnir-data
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATA_DIR
+        value: /var/data
+      # Encrypts the platform sign-ins stored in the database. Generated once; keep it.
+      - key: SECRET_KEY
+        generateValue: true
+      # Optional: a custom domain. Without it, Gungnir uses the onrender.com address.
+      - key: PUBLIC_URL
+        sync: false
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: TIKTOK_CLIENT_KEY
+        sync: false
+      - key: TIKTOK_CLIENT_SECRET
+        sync: false
